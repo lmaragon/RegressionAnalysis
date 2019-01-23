@@ -1,4 +1,4 @@
-# RegressionAnalysis
+# Using Linear Regression to Predict Happiness Score
 
 ## Authors
 Andrew Hong, Luis Aragon
