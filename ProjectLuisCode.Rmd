@@ -1,0 +1,138 @@
+---
+title: "Projectpstat126"
+author: "Luis Aragon"
+date: "September 8, 2018"
+output: 
+  html_document:
+    keep_md: true
+---
+
+This is a projest using Linear Regression to analyze happiness data.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+## Explore Data
+```{r}
+# Access Data
+data_dir <- "/home/lma/Documents/STATS/PSTAT126/Project/data"
+happy_file <- file.path(data_dir, "2015.csv")
+happy.data <- read.csv(happy_file, header = TRUE)
+
+#Remove unwanted columns
+happy.data$Country = NULL
+happy.data$Happiness.Rank = NULL
+happy.data$Standard.Error = NULL
+happy.data$Dystopia.Residual = NULL
+happy.data$Region = NULL
+
+head(happy.data)
+```
+
+## Find Best Model Using Stepwise Regression
+```{r}
+attach(happy.data)
+mod = lm(Happiness.Score ~ 1, data = happy.data)
+mod.upper = lm(Happiness.Score ~ ., data = happy.data)
+
+step(mod, scope = list(lower = mod, upper = mod.upper))
+```
+
+## Using Best Subsets Regression
+```{r}
+library(leaps)
+modsubset = regsubsets(happy.data[,-1], happy.data$Happiness.Score)
+
+# Summary of Models
+summary(modsubset)$which
+
+# Summary of Adjusted R Squared
+summary(modsubset)$adjr2
+
+# Summary of Mallows Cp
+summary(modsubset)$cp
+```
+## Checking Distribution of Residuals
+```{r}
+#F Test for New Model
+mod.red = lm(Happiness.Score ~ 1)
+mod.full = lm(Happiness.Score ~ Economy..GDP.per.Capita. + Family + 
+    Freedom + Health..Life.Expectancy. + Trust..Government.Corruption., 
+    data = happy.data)
+anova(mod.red, mod.full)
+
+#Plot Residual vs. Fit
+yhat = fitted(mod.full)
+e = Happiness.Score - yhat
+plot(yhat, e, xlab = 'Fitted Values', ylab = 'Residual', main = 'Residual vs Fit')
+abline(h = 0, lty = 2)
+
+#Plot Normal QQ
+qqnorm(e)
+qqline(e)
+
+#Shapiro-Wilk Test
+shapiro.test(e)
+```
+
+```{r}
+# Identify Max Values
+econ.max = max(Economy..GDP.per.Capita.)
+family.max = max(Family)
+freedom.max = max(Freedom)
+health.max = max(Health..Life.Expectancy.)
+trust.max = max(Trust..Government.Corruption.)
+econ.max
+family.max
+freedom.max
+health.max
+trust.max
+head(happy.data)
+# Create New Data Frame with Max of Each Predictor
+new.max = data.frame(Economy..GDP.per.Capita.=econ.max, Family=family.max, Freedom=freedom.max, Health..Life.Expectancy.=health.max, Trust..Government.Corruption.=trust.max)
+pi.max = predict(mod.full, new.max, interval = 'prediction', level = 0.95)
+pi.max
+```
+
+```{r}
+# Identify Min Values
+econ.min = min(Economy..GDP.per.Capita.)
+family.min = min(Family)
+freedom.min = min(Freedom)
+health.min = min(Health..Life.Expectancy.)
+trust.min = min(Trust..Government.Corruption.)
+
+# Create New Data Frame with Max of Each Predictor
+new.min = data.frame(Economy..GDP.per.Capita.=econ.min, Family=family.min, Freedom=freedom.min, Health..Life.Expectancy.=health.min, Trust..Government.Corruption.=trust.min)
+
+pi.min = predict(mod.full, new.min, interval = 'prediction', level = 0.95)
+pi.min
+```
+
+```{r}
+# Identify Mean Values
+econ.mean = mean(Economy..GDP.per.Capita.)
+family.mean = mean(Family)
+freedom.mean = mean(Freedom)
+health.mean = mean(Health..Life.Expectancy.)
+trust.mean = mean(Trust..Government.Corruption.)
+
+# Create New Data Frame with Max of Each Predictor
+new.mean = data.frame(Economy..GDP.per.Capita.=econ.mean, Family=family.mean, Freedom=freedom.mean, Health..Life.Expectancy.=health.mean, Trust..Government.Corruption.=trust.mean)
+pi.mean = predict(mod.full, new.mean, interval = 'prediction', level = 0.95)
+pi.mean
+```
+
+```{r}
+mod.full = lm(Happiness.Score ~ Economy..GDP.per.Capita. + Family + 
+    Freedom + Health..Life.Expectancy. + Trust..Government.Corruption., 
+    data = happy.data)
+
+mod.full.interaction = lm(Happiness.Score ~ Economy..GDP.per.Capita. + Family + 
+    Freedom + Health..Life.Expectancy. + Trust..Government.Corruption. + Economy..GDP.per.Capita.*Family + Economy..GDP.per.Capita.*Freedom + Economy..GDP.per.Capita.*Health..Life.Expectancy. + Economy..GDP.per.Capita.*Trust..Government.Corruption., data = happy.data)
+
+anova(mod.full, mod.full.interaction)
+
+```
+

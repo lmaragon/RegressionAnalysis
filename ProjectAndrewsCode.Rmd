@@ -1,0 +1,87 @@
+---
+title: "Appendix"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+```{r}
+library(leaps)
+# Access Data
+data_dir <- "/home/lma/Documents/STATS/PSTAT126/Project/data"
+happy_file <- file.path(data_dir, "2015.csv")
+data <- read.csv(happy_file, header = TRUE)
+
+#Get rid of irrelevant columns
+data$Country = NULL
+data$Happiness.Rank = NULL
+data$Standard.Error = NULL
+data$Dystopia.Residual = NULL
+data$Region = NULL
+
+#Set Variables
+attach(data)
+econ = Economy..GDP.per.Capita.
+fam = Family
+health = Health..Life.Expectancy.
+gen = Generosity
+score = Happiness.Score
+trust = Trust..Government.Corruption.
+freedom = Freedom
+
+
+#Question 1: Find the best model and check line conditions. Check for econ interaction.
+#################################################################################################################
+#Stepwise method
+mod.lower = lm(score ~ 1, data = data)
+mod.upper = lm(score ~ econ + fam + health + gen + trust + freedom, data = data)
+step(mod.lower, scope = list(lower = mod.lower, upper = mod.upper))
+
+#Best Subsets method
+mod = regsubsets(cbind(econ, fam, health, gen, trust, freedom), score)
+summary(mod)$which
+summary(mod)$adj
+
+#Mallows CP Method and plot
+summary(mod)$cp
+plot(summary(mod)$cp, ylab = "Mallow's CP", main = "Mallow's CP plot")
+abline(1,1)
+
+#Check LINE conditions for best model (Residuals vs fit, QQ-plot)
+fit = lm(score ~ econ + fam + health + trust + freedom)
+yhat = fitted(fit)
+e = score - yhat
+plot(yhat, e, xlab = "Fitted values", ylab = "Residuals", main = "Residuals vs Fit")
+abline(h = 0, lty = 2)
+qqnorm(e)
+qqline(e)
+shapiro.test(e)
+
+#F-test for model and for econ interaction
+anova(lm(score ~ 1),fit)
+anova(fit, lm(score ~ econ + fam + health + trust + freedom + econ*fam + econ* health + econ*trust + econ*freedom))
+#################################################################################################################
+
+
+#Question 2: Find prediction interval for a country with lower, average, and max values
+#################################################################################################################
+#Prediction for min stats
+minnew = data.frame(econ = min(econ), fam = min(fam), health = min(health), trust = min(trust), freedom = min(freedom))
+minint = predict(fit, minnew, se.fit = TRUE, interval = 'prediction', level = .95)
+minint
+
+#Prediction for mean stats
+meannew = data.frame(econ = mean(econ), fam = mean(fam), health = mean(health), trust = mean(trust), freedom = mean(freedom))
+meanint = predict(fit, meannew, se.fit = TRUE, interval = 'prediction', level = .95)
+meanint
+
+#Prediction for max stats
+maxnew = data.frame(econ = max(econ), fam = max(fam), health = max(health), trust = max(trust), freedom = max(freedom))
+maxint = predict(fit, maxnew, se.fit = TRUE, interval = 'prediction', level = .95)
+maxint
+#################################################################################################################
+detach(data)
+```
+
